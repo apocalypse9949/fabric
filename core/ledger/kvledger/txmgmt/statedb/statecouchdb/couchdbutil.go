@@ -26,6 +26,7 @@ import (
 
 var (
 	expectedDatabaseNamePattern = `[a-z][a-z0-9.$_()+-]*`
+	expectedDatabaseNameRegex   = regexp.MustCompile(expectedDatabaseNamePattern)
 	maxLength                   = 238
 )
 
@@ -40,6 +41,8 @@ var (
 	collectionNameAllowedLength = 50
 	disableKeepAlive            bool
 )
+
+var upperCaseRegex = regexp.MustCompile(`([A-Z])`)
 
 func createCouchInstance(config *ledger.CouchDBConfig, metricsProvider metrics.Provider) (*couchInstance, error) {
 	// make sure the address is valid
@@ -283,11 +286,7 @@ func mapAndValidateDatabaseName(databaseName string) (string, error) {
 	if len(databaseName) > maxLength {
 		return "", errors.Errorf("database name is illegal, cannot be longer than %d", maxLength)
 	}
-	re, err := regexp.Compile(expectedDatabaseNamePattern)
-	if err != nil {
-		return "", errors.Wrapf(err, "error compiling regexp: %s", expectedDatabaseNamePattern)
-	}
-	matched := re.FindString(databaseName)
+	matched := expectedDatabaseNameRegex.FindString(databaseName)
 	if len(matched) != len(databaseName) {
 		return "", errors.Errorf("databaseName '%s' does not match pattern '%s'", databaseName, expectedDatabaseNamePattern)
 	}
@@ -300,8 +299,7 @@ func mapAndValidateDatabaseName(databaseName string) (string, error) {
 // escapeUpperCase replaces every upper case letter with a '$' and the respective
 // lower-case letter
 func escapeUpperCase(dbName string) string {
-	re := regexp.MustCompile(`([A-Z])`)
-	dbName = re.ReplaceAllString(dbName, "$$"+"$1")
+	dbName = upperCaseRegex.ReplaceAllString(dbName, "$$"+"$1")
 	return strings.ToLower(dbName)
 }
 
