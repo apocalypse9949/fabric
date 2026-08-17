@@ -219,3 +219,19 @@ func TestDropApplicationDBsWhenDBNotStarted(t *testing.T) {
 	err := DropApplicationDBs(config)
 	require.EqualError(t, err, `unable to connect to CouchDB, check the hostname and port: http error calling couchdb: Get "http://127.0.0.1:5984/": dial tcp 127.0.0.1:5984: connect: connection refused`)
 }
+
+func BenchmarkEscapeUpperCase(b *testing.B) {
+	dbName := "ThisIsATestDatabaseName"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		escapeUpperCase(dbName)
+	}
+}
+
+func BenchmarkMapAndValidateDatabaseName(b *testing.B) {
+	dbName := "valid.database.name"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mapAndValidateDatabaseName(dbName)
+	}
+}
