@@ -55,8 +55,12 @@ func (oc *OrdererClient) Deliver() (ab.AtomicBroadcast_DeliverClient, error) {
 	if err != nil {
 		return nil, errors.WithMessagef(err, "orderer client failed to connect to %s", oc.address)
 	}
-	// TODO: check to see if we should actually handle error before returning
-	return ab.NewAtomicBroadcastClient(conn).Deliver(context.TODO())
+
+	client, err := ab.NewAtomicBroadcastClient(conn).Deliver(context.Background())
+	if err != nil {
+		return nil, errors.WithMessagef(err, "orderer client failed to create deliver client to %s", oc.address)
+	}
+	return client, nil
 }
 
 // Certificate returns the TLS client certificate (if available)
@@ -83,7 +87,7 @@ func newMulticastBroadcastClient(addressString string, dial dialer) (*multicastB
 		if err != nil {
 			return nil, errors.WithMessage(err, fmt.Sprintf("orderer client failed to connect to %s", addr))
 		}
-		cl, err := ab.NewAtomicBroadcastClient(conn).Broadcast(context.TODO())
+		cl, err := ab.NewAtomicBroadcastClient(conn).Broadcast(context.Background())
 		if err != nil {
 			return nil, err
 		}
