@@ -110,7 +110,12 @@ func (pc *PeerClient) Deliver() (pb.Deliver_DeliverClient, error) {
 	if err != nil {
 		return nil, errors.WithMessagef(err, "deliver client failed to connect to %s", pc.address)
 	}
-	return pb.NewDeliverClient(conn).Deliver(context.TODO())
+
+	client, err := pb.NewDeliverClient(conn).Deliver(context.Background())
+	if err != nil {
+		return nil, errors.WithMessagef(err, "deliver client failed to create deliver client to %s", pc.address)
+	}
+	return client, nil
 }
 
 // PeerDeliver returns a client for the Deliver service for peer-specific use
