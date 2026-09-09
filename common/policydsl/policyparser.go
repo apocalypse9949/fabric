@@ -202,19 +202,26 @@ func secondPass(args ...any) (any, error) {
 				PrincipalClassification: mb.MSPPrincipal_ROLE,
 				Principal:               mspRole,
 			}
-			ctx.principals = append(ctx.principals, p)
+
+			// Deduplicate principals: check if we already have this principal
+			foundIndex := -1
+			for i, cp := range ctx.principals {
+				if proto.Equal(cp, p) {
+					foundIndex = i
+					break
+				}
+			}
+
+			if foundIndex == -1 {
+				foundIndex = ctx.IDNum
+				ctx.principals = append(ctx.principals, p)
+				ctx.IDNum++
+			}
 
 			/* create a SignaturePolicy that requires a signature from
 			   the principal we've just built*/
-			dapolicy := SignedBy(int32(ctx.IDNum))
+			dapolicy := SignedBy(int32(foundIndex))
 			policies = append(policies, dapolicy)
-
-			/* increment the identity counter. Note that this is
-			   suboptimal as we are not reusing identities. We
-			   can deduplicate them easily and make this puppy
-			   smaller. For now it's fine though */
-			// TODO: deduplicate principals
-			ctx.IDNum++
 
 		/* if we've already got a policy we're good, just append it */
 		case *cb.SignaturePolicy:
