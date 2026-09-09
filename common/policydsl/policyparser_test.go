@@ -38,7 +38,7 @@ func TestOutOf1(t *testing.T) {
 		Identities: principals,
 	}
 
-	require.Equal(t, p1, p2)
+	require.True(t, proto.Equal(p1, p2))
 }
 
 func TestOutOf2(t *testing.T) {
@@ -63,7 +63,7 @@ func TestOutOf2(t *testing.T) {
 		Identities: principals,
 	}
 
-	require.Equal(t, p1, p2)
+	require.True(t, proto.Equal(p1, p2))
 }
 
 func TestAnd(t *testing.T) {
@@ -88,7 +88,7 @@ func TestAnd(t *testing.T) {
 		Identities: principals,
 	}
 
-	require.Equal(t, p1, p2)
+	require.True(t, proto.Equal(p1, p2))
 }
 
 func TestAndClientPeerOrderer(t *testing.T) {
@@ -138,7 +138,7 @@ func TestOr(t *testing.T) {
 		Identities: principals,
 	}
 
-	require.Equal(t, p1, p2)
+	require.True(t, proto.Equal(p1, p2))
 }
 
 func TestComplex1(t *testing.T) {
@@ -168,7 +168,7 @@ func TestComplex1(t *testing.T) {
 		Identities: principals,
 	}
 
-	require.Equal(t, p1, p2)
+	require.True(t, proto.Equal(p1, p2))
 }
 
 func TestComplex2(t *testing.T) {
@@ -203,7 +203,7 @@ func TestComplex2(t *testing.T) {
 		Identities: principals,
 	}
 
-	require.Equal(t, p1, p2)
+	require.True(t, proto.Equal(p1, p2))
 }
 
 func TestMSPIDWIthSpecialChars(t *testing.T) {
@@ -233,7 +233,7 @@ func TestMSPIDWIthSpecialChars(t *testing.T) {
 		Identities: principals,
 	}
 
-	require.Equal(t, p1, p2)
+	require.True(t, proto.Equal(p1, p2))
 }
 
 func TestBadStringsNoPanic(t *testing.T) {
@@ -279,7 +279,7 @@ func TestNodeOUs(t *testing.T) {
 		Identities: principals,
 	}
 
-	require.Equal(t, p1, p2)
+	require.True(t, proto.Equal(p1, p2))
 }
 
 func TestOutOfNumIsString(t *testing.T) {
@@ -304,7 +304,7 @@ func TestOutOfNumIsString(t *testing.T) {
 		Identities: principals,
 	}
 
-	require.Equal(t, p1, p2)
+	require.True(t, proto.Equal(p1, p2))
 }
 
 func TestOutOfErrorCase(t *testing.T) {
@@ -387,7 +387,7 @@ func TestSecondPassBoundaryCheck(t *testing.T) {
 		Rule:       NOutOf(0, []*common.SignaturePolicy{SignedBy(0), SignedBy(1)}),
 		Identities: principals,
 	}
-	require.Equal(t, expected1, p1)
+	require.True(t, proto.Equal(expected1, p1))
 
 	// Check upper boundary
 	// Permit t==n+1 : never satisfied policy
@@ -399,10 +399,35 @@ func TestSecondPassBoundaryCheck(t *testing.T) {
 		Rule:       NOutOf(3, []*common.SignaturePolicy{SignedBy(0), SignedBy(1)}),
 		Identities: principals,
 	}
-	require.Equal(t, expected2, p2)
+	require.True(t, proto.Equal(expected2, p2))
 
 	// Prohibit t>n + 1
 	p3, err3 := FromString("OutOf(4, 'A.member', 'B.member')")
 	require.Nil(t, p3)
 	require.ErrorContains(t, err3, "invalid t-out-of-n predicate, t 4, n 2")
+}
+
+func TestDeduplicatePrincipals(t *testing.T) {
+	p1, err := FromString("OutOf(2, 'A.member', 'A.member', 'B.member')")
+	require.NoError(t, err)
+
+	principals := make([]*msp.MSPPrincipal, 0)
+
+	principals = append(principals, &msp.MSPPrincipal{
+		PrincipalClassification: msp.MSPPrincipal_ROLE,
+		Principal:               protoutil.MarshalOrPanic(&msp.MSPRole{Role: msp.MSPRole_MEMBER, MspIdentifier: "A"}),
+	})
+
+	principals = append(principals, &msp.MSPPrincipal{
+		PrincipalClassification: msp.MSPPrincipal_ROLE,
+		Principal:               protoutil.MarshalOrPanic(&msp.MSPRole{Role: msp.MSPRole_MEMBER, MspIdentifier: "B"}),
+	})
+
+	p2 := &common.SignaturePolicyEnvelope{
+		Version:    0,
+		Rule:       NOutOf(2, []*common.SignaturePolicy{SignedBy(0), SignedBy(0), SignedBy(1)}),
+		Identities: principals,
+	}
+
+	require.True(t, proto.Equal(p1, p2))
 }
